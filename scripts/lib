@@ -98,7 +98,7 @@ cmd_init() {
 
 cmd_config() {
     header "Current Configuration"
-    library-manager config-cmd
+    library-manager config
 }
 
 cmd_doctor() {
