@@ -1,0 +1,9 @@
+# Library Manager Automated Tasks
+# Daily sync at 3 AM
+0 3 * * * /mnt/Storage/library/.library-manager/auto_sync.sh
+
+# Hourly inbox processing (run once per hour)
+0 * * * * /usr/bin/library-manager watch --once >> /var/log/library-manager-inbox.log 2>&1
+
+# Weekly verification on Sunday at 4 AM
+0 4 * * 0 /usr/bin/library-manager verify >> /var/log/library-manager-verify.log 2>&1

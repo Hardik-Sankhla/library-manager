@@ -1,0 +1,12 @@
+telethon>=1.45.0
+pyrogram>=2.0.106
+pymupdf>=1.28.2
+ebooklib>=0.20
+python-magic>=0.4.27
+Pillow>=11.0.0
+PyYAML>=6.0
+tqdm>=4.70.0
+rich>=13.0.0
+click>=8.1.0
+watchdog>=6.0.0
+xxhash>=3.4.0

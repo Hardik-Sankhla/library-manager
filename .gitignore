@@ -1,0 +1,63 @@
+# Library Data - EXCLUDED from git (too large, personal)
+books/
+_inbox/
+_duplicates/
+_metadata/
+*.pdf
+*.epub
+*.mobi
+*.azw3
+*.azw
+GATE_2024_DA_Full_Paper.pdf
+gate2024_da_aglasem.html
+
+# Database (contains personal file paths)
+.library-manager/catalog.db
+.library-manager/*.log
+
+# Config with secrets
+config.yaml
+.env
+*.secret
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
+/var/log/library-manager-*.log
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Telegram session
+*.session
+*.session-journal
+
+# Additional exclusions
+BOOKS/
+GATE_2024_DA_*.md
+gate2024_da_*.html
+02_Solo Leveling/
+Solo Leveling/
+_duplicates/
+_inbox/
+_metadata/

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# lib-backup - Backup library catalog and config (excludes books)
+
+set -euo pipefail
+
+LIBRARY_ROOT="${LIBRARY_ROOT:-/mnt/Storage/library}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/library-backups}"
+DATE=$(date +%Y%m%d-%H%M%S)
+BACKUP_NAME="library-backup-$DATE"
+
+info() { echo -e "\033[0;34mℹ\033[0m $*"; }
+success() { echo -e "\033[0;32m✓\033[0m $*"; }
+error() { echo -e "\033[0;31m✗\033[0m $*" >&2; }
+
+mkdir -p "$BACKUP_DIR"
+
+info "Creating backup: $BACKUP_NAME"
+mkdir -p "$BACKUP_DIR/$BACKUP_NAME"
+
+# Backup catalog database
+if [[ -f "$LIBRARY_ROOT/.library-manager/catalog.db" ]]; then
+    cp "$LIBRARY_ROOT/.library-manager/catalog.db" "$BACKUP_DIR/$BACKUP_NAME/"
+    success "Backed up catalog.db"
+fi
+
+# Backup config
+if [[ -f "$HOME/.config/library-manager/config.yaml" ]]; then
+    mkdir -p "$BACKUP_DIR/$BACKUP_NAME/config"
+    cp "$HOME/.config/library-manager/config.yaml" "$BACKUP_DIR/$BACKUP_NAME/config/"
+    success "Backed up config.yaml"
+fi
+
+# Backup .library-manager source (excluding database)
+rsync -a --exclude='catalog.db' --exclude='*.log' \
+    "$LIBRARY_ROOT/.library-manager/" "$BACKUP_DIR/$BACKUP_NAME/.library-manager/"
+success "Backed up .library-manager source"
+
+# Create compressed archive
+cd "$BACKUP_DIR"
+tar -czf "$BACKUP_NAME.tar.gz" "$BACKUP_NAME"
+rm -rf "$BACKUP_NAME"
+success "Created: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
+
+# Keep only last 10 backups
+ls -t "$BACKUP_DIR"/library-backup-*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+info "Old backups cleaned (keeping last 10)"
+
+success "Backup complete: $BACKUP_DIR/$BACKUP_NAME.tar.gz"

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# lib-sync-status - Detailed sync status with progress
+
+set -euo pipefail
+
+info() { echo -e "\033[0;34mℹ\033[0m $*"; }
+success() { echo -e "\033[0;32m✓\033[0m $*"; }
+warn() { echo -e "\033[1;33m⚠\033[0m $*"; }
+error() { echo -e "\033[0;31m✗\033[0m $*" >&2; }
+
+python3 << 'PYEOF'
+from library_manager.core.config import get_config
+from library_manager.core.database import get_db
+from library_manager.telegram.sync import SyncManager
+
+config = get_config()
+db = get_db()
+
+print("📊 DETAILED SYNC STATUS")
+print("=" * 50)
+
+# Overall stats
+stats = db.get_stats()
+print(f"Total Books:     {stats['total_books']}")
+print(f"Total Size:      {stats['total_size'] / 1024 / 1024 / 1024:.2f} GB")
+print(f"Synced to TG:    {stats['with_telegram']}")
+print(f"Need Sync:       {len(db.get_books_needing_sync())}")
+print(f"Duplicates:      {stats['duplicates']}")
+print(f"Archived:        {stats['archived']}")
+print(f"Missing:         {stats['missing']}")
+
+# Books needing sync
+books_needing = db.get_books_needing_sync()
+if books_needing:
+    print(f"\n📤 BOOKS NEEDING SYNC ({len(books_needing)}):")
+    total_size = 0
+    for i, book in enumerate(books_needing[:20], 1):
+        size_mb = book.size_bytes / 1024 / 1024
+        total_size += book.size_bytes
+        status = "NEW" if not book.telegram_message_id else "CHANGED"
+        print(f"  {i:2d}. [{status}] {book.title[:50]:50s} {size_mb:6.1f} MB")
+    if len(books_needing) > 20:
+        print(f"      ... and {len(books_needing) - 20} more")
+    print(f"  Total size to sync: {total_size / 1024 / 1024:.1f} MB")
+
+# Recent sync history
+print(f"\n📋 RECENT SYNC HISTORY:")
+history = db.get_sync_history(limit=15)
+if history:
+    for h in history:
+        status_icon = "✓" if h['status'] == 'success' else "✗" if h['status'] == 'failed' else "⏭"
+        size = f" ({h['file_size']/1024/1024:.1f}MB)" if h['file_size'] else ""
+        print(f"  {status_icon} {h['operation']:8s} {h['status']:8s}{size} - {h['created_at'][:19]}")
+else:
+    print("  No sync history found")
+
+# Telegram connection test
+print(f"\n🔐 TELEGRAM CONNECTION:")
+try:
+    mgr = SyncManager()
+    if mgr.connect():
+        success = "✅ Connected"
+        channel = mgr.backup.channel_id
+        print(f"  Status: {success}")
+        print(f"  Channel: {channel}")
+        
+        # List recent channel files
+        files = mgr.list_channel_files(10)
+        print(f"  Channel files (recent 10): {len(files)}")
+        for f in files[:5]:
+            print(f"    #{f['message_id']} - {f['file_name'][:40]} ({f['file_size']/1024/1024:.1f}MB)")
+    else:
+        print("  Status: ❌ Not connected")
+except Exception as e:
+    print(f"  Status: ❌ Error - {e}")
+PYEOF

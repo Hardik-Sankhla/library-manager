@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# lib-restore - Restore library catalog and config from backup
+
+set -euo pipefail
+
+BACKUP_DIR="${BACKUP_DIR:-$HOME/library-backups}"
+
+info() { echo -e "\033[0;34mℹ\033[0m $*"; }
+success() { echo -e "\033[0;32m✓\033[0m $*"; }
+error() { echo -e "\033[0;31m✗\033[0m $*" >&2; }
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: lib-restore <backup-file.tar.gz>"
+    echo ""
+    echo "Available backups:"
+    ls -lh "$BACKUP_DIR"/library-backup-*.tar.gz 2>/dev/null || echo "  No backups found"
+    exit 1
+fi
+
+BACKUP_FILE="$1"
+if [[ ! -f "$BACKUP_FILE" ]]; then
+    if [[ -f "$BACKUP_DIR/$BACKUP_FILE" ]]; then
+        BACKUP_FILE="$BACKUP_DIR/$BACKUP_FILE"
+    else
+        error "Backup file not found: $BACKUP_FILE"
+        exit 1
+    fi
+fi
+
+info "Restoring from: $BACKUP_FILE"
+
+# Create temp directory
+TMP_DIR=$(mktemp -d)
+trap "rm -rf $TMP_DIR" EXIT
+
+tar -xzf "$BACKUP_FILE" -C "$TMP_DIR"
+BACKUP_NAME=$(basename "$BACKUP_FILE" .tar.gz)
+EXTRACTED_DIR="$TMP_DIR/$BACKUP_NAME"
+
+if [[ ! -d "$EXTRACTED_DIR" ]]; then
+    error "Invalid backup format"
+    exit 1
+fi
+
+# Restore catalog
+if [[ -f "$EXTRACTED_DIR/catalog.db" ]]; then
+    cp "$EXTRACTED_DIR/catalog.db" "/mnt/Storage/library/.library-manager/catalog.db"
+    success "Restored catalog.db"
+fi
+
+# Restore config
+if [[ -f "$EXTRACTED_DIR/config/config.yaml" ]]; then
+    mkdir -p "$HOME/.config/library-manager"
+    cp "$EXTRACTED_DIR/config/config.yaml" "$HOME/.config/library-manager/config.yaml"
+    success "Restored config.yaml"
+fi
+
+# Restore .library-manager source
+if [[ -d "$EXTRACTED_DIR/.library-manager" ]]; then
+    rsync -a --exclude='catalog.db' --exclude='*.log' \
+        "$EXTRACTED_DIR/.library-manager/" "/mnt/Storage/library/.library-manager/"
+    success "Restored .library-manager source"
+fi
+
+# Reinstall package
+cd /mnt/Storage/library/.library-manager
+pip install -e . --quiet
+success "Reinstalled library-manager package"
+
+success "Restore complete!"
+info "Run 'lib doctor' to verify"
