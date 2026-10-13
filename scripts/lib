@@ -187,24 +187,40 @@ cmd_add() {
 
 cmd_organize() {
     header "Organizing Library (full)"
-    library-manager --dry-run="${DRY_RUN:-false}" organize
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        library-manager --dry-run organize
+    else
+        library-manager organize
+    fi
 }
 
 cmd_inbox() {
     header "Processing Inbox Only"
-    library-manager --dry-run="${DRY_RUN:-false}" organize --inbox-only
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        library-manager --dry-run organize --inbox-only
+    else
+        library-manager organize --inbox-only
+    fi
 }
 
 cmd_rename() {
     header "Renaming Files"
-    library-manager --dry-run="${DRY_RUN:-false}" organize --no-rename
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        library-manager --dry-run organize --no-rename
+    else
+        library-manager organize --no-rename
+    fi
     # Actually rename is part of organize, so just run organize
     warn "Rename is integrated into 'organize'. Run 'lib organize' instead."
 }
 
 cmd_dedupe() {
     header "Finding Duplicates"
-    library-manager --dry-run="${DRY_RUN:-false}" dedupe
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        library-manager --dry-run dedupe
+    else
+        library-manager dedupe
+    fi
 }
 
 cmd_meta() {
@@ -237,24 +253,24 @@ cmd_stats() {
 
 cmd_sync() {
     header "Syncing to Telegram"
-    library-manager sync push
+    library-manager sync --push
 }
 
 cmd_pull() {
     header "Downloading from Telegram"
-    library-manager sync pull
+    library-manager sync --pull
 }
 
 cmd_status() {
     header "Sync Status"
-    library-manager sync status
+    library-manager sync --status
 }
 
 cmd_tglist() {
     header "Telegram Channel Files"
-    library-manager sync status
-    # Additional list via sync manager would need a new command
-    python3 -c "
+    library-manager sync --status
+    # Additional list via sync manager
+    PYTHONPATH="/mnt/Storage/library/.library-manager/src:${PYTHONPATH:-}" python3 -c "
 from library_manager.telegram.sync import SyncManager
 mgr = SyncManager()
 try:

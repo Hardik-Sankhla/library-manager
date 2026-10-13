@@ -510,7 +510,7 @@ def clean(ctx):
     click.echo(f"🧹 Removed {removed} empty directories")
     
     # Clean .crdownload files
-    library_root = config.get_library_root()
+    library_root = get_config().get_library_root()
     crdownloads = list(library_root.rglob("*.crdownload"))
     for f in crdownloads:
         f.unlink()
